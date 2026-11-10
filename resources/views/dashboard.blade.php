@@ -38,6 +38,22 @@
             margin-bottom: 25px;
         }
 
+        .role-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Container dua tombol pilihan role */
+        .role-grid {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
         .btn {
             padding: 12px;
             border: none;
@@ -59,14 +75,28 @@
             background-color: #3651d4;
         }
 
+        .btn-pelanggan {
+            background-color: #4361ee;
+            color: white;
+        }
+
+        .btn-owner {
+            background-color: #0f172a;
+            color: white;
+        }
+
+        .btn-owner:hover {
+            background-color: #1e293b;
+        }
+
         .btn-outline {
             background-color: transparent;
-            color: #4361ee;
-            border: 2px solid #4361ee;
+            color: #ef4444;
+            border: 2px solid #ef4444;
         }
 
         .btn-outline:hover {
-            background-color: #4361ee;
+            background-color: #ef4444;
             color: white;
         }
 
@@ -111,6 +141,15 @@
             color: #1e293b;
             font-weight: 600;
         }
+
+        .alert-info {
+            background-color: #eff6ff;
+            color: #1d4ed8;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-top: 15px;
+        }
     </style>
 </head>
 <body>
@@ -118,8 +157,32 @@
     <div class="container">
         <h2>Sistem Informasi Rental Mobil</h2>
 
-        <!-- Tombol untuk menuju halaman login -->
-        <a href="{{ url('/login') }}" class="btn btn-outline">🔑 Login / Masuk</a>
+        <!-- Tambahkan Alert Sukses Ini -->
+@if(session('success'))
+    <div style="background-color: #d1fae5; color: #065f46; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-weight: 600;">
+        {{ session('success') }}
+    </div>
+@endif
+
+        <!-- Bagian Pilihan Hak Akses / Login -->
+        @guest
+            <div class="role-section-title">Pilih Hak Akses Masuk</div>
+            <div class="role-grid">
+                <!-- Klik Pelanggan: Langsung menuju Form Login / Identitas -->
+                <a href="{{ url('/login?role=pelanggan') }}" class="btn btn-pelanggan">👤 Login Pelanggan</a>
+                
+                <!-- Klik Owner: Menuju Form Login Khusus Owner/Admin -->
+                <a href="{{ url('/login-owner') }}" class="btn btn-owner">👑 Login Owner</a>
+            </div>
+        @else
+            <!-- Status jika user sudah terautentikasi -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <span style="font-size: 14px; color: #334155;">
+                    Selamat datang, <strong>{{ auth()->user()->nama }}</strong> (Role: <u>{{ ucfirst(auth()->user()->role) }}</u>)
+                </span>
+                <a href="{{ url('/logout') }}" class="btn btn-outline" style="width: auto; margin-bottom: 0; padding: 6px 14px; font-size: 13px;">Keluar</a>
+            </div>
+        @endguest
 
         <div class="divider"></div>
 
@@ -129,40 +192,45 @@
         <a href="{{ url('/kontak') }}" class="btn">Kontak</a>
         <a href="{{ url('/jenis-layanan') }}" class="btn">Jenis Layanan</a>
 
-        <div class="divider"></div>
-
-        <!-- Bagian Tabel Data Pelanggan -->
-        <h2 style="font-size: 18px; margin-top: 20px; text-align: left;">Data Akun / Identitas Pelanggan</h2>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>No</th>
-                    <th>Nama Lengkap</th>
-                    <th>NIK</th>
-                    <th>Alamat</th>
-                    <th>Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($data_akun as $index => $row)
-                <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td>{{ $row->nama }}</td>
-                    <td>{{ $row->nik }}</td>
-                    <td>{{ $row->alamat }}</td>
-                    <td>
-                        <a href="{{ url('/login?id=' . $row->id) }}" class="btn btn-warning">Edit</a>
-                        <a href="{{ url('/hapus/' . $row->id) }}" class="btn btn-danger" onclick="return confirm('Yakin ingin menghapus data ini?')">Delete</a>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="5" style="text-align: center;">Belum ada data pelanggan.</td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
+        <!-- HAK AKSES KHUSUS OWNER: Tabel Data Pelanggan -->
+        @if(auth()->check() && auth()->user()->role === 'owner')
+            <div class="divider"></div>
+            <h2 style="font-size: 18px; margin-top: 20px; text-align: left;">Data Akun / Identitas Pelanggan (Khusus Owner)</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Nama Lengkap</th>
+                        <th>NIK</th>
+                        <th>Alamat</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($data_akun as $index => $row)
+                    <tr>
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ $row->nama }}</td>
+                        <td>{{ $row->nik }}</td>
+                        <td>{{ $row->alamat }}</td>
+                        <td>
+                            <a href="{{ url('/login?id=' . $row->id) }}" class="btn btn-warning">Edit</a>
+                            <a href="{{ url('/hapus/' . $row->id) }}" class="btn btn-danger" onclick="return confirm('Yakin ingin menghapus data ini?')">Delete</a>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="5" style="text-align: center;">Belum ada data pelanggan.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        @elseif(auth()->check() && auth()->user()->role === 'pelanggan')
+            <div class="alert-info">
+                Anda masuk sebagai <strong>Pelanggan</strong>. Silakan pilih menu di atas untuk menggunakan layanan rental mobil.
+            </div>
+        @endif
     </div>
 
 </body>

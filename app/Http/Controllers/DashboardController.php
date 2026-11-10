@@ -3,93 +3,101 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    // Menampilkan Halaman Utama / Dashboard & Data Pelanggan
+    // 1. Halaman Utama / Dashboard
     public function index()
     {
         $data_akun = DB::table('akun_rental')->get();
         return view('dashboard', compact('data_akun'));
     }
 
-    // Menampilkan Form Login (Tambah atau Edit Data)
-    public function login(Request $request)
+    // 2. Halaman Login Pelanggan
+    public function login()
     {
-        $akun = null;
-        if ($request->has('id')) {
-            $akun = DB::table('akun_rental')->where('id', $request->id)->first();
-        }
-
-        return view('login', compact('akun'));
+        return view('login');
     }
 
-    // Menampilkan Halaman Langganan Mitra Perawatan
+    // 3. Halaman Login Owner
+    public function loginOwner()
+    {
+        return view('login_owner');
+    }
+
+    // 4. Halaman Statis Navigasi
     public function mitraPerawatan()
     {
-        $telepon_mitra = "089663132784";
-        return view('mitra-perawatan', compact('telepon_mitra'));
+        return view('mitra_perawatan');
     }
 
-    // Menampilkan Halaman Lokasi
     public function lokasi()
     {
-        $urlMaps = "https://id.search.yahoo.com/search?fr=mcafee&type=E210ID91215G0&p=google+maps";
-        return view('lokasi', compact('urlMaps'));
+        return view('lokasi');
     }
 
-    // Menampilkan Halaman Kontak
     public function kontak()
     {
-        $telepon_kontak = "089663132784";
-        return view('kontak', compact('telepon_kontak'));
+        return view('kontak');
     }
 
-    // Menampilkan Halaman Jenis Layanan
     public function jenisLayanan()
     {
-        $daftar_layanan = [
-            "Rental Mobil Keluarga",
-            "Rental Supercar",
-            "Rental Mobil Daily"
-        ];
-        return view('jenis-layanan', compact('daftar_layanan'));
+        return view('jenis_layanan');
     }
 
-    // Proses Simpan Data (Insert Baru atau Update)
+    // 5. Simpan Data Pelanggan Baru (Tabel: akun_rental)
     public function store(Request $request)
     {
-        $request->validate([
-            'nama' => 'required|string|max:255',
-            'nik' => 'required|string|max:16',
-            'alamat' => 'required|string',
+        DB::table('akun_rental')->insert([
+            'nama' => $request->nama,
+            'nik' => $request->nik,
+            'alamat' => $request->alamat,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
-
-        if ($request->filled('id_akun')) {
-            DB::table('akun_rental')->where('id', $request->id_akun)->update([
-                'nama' => $request->nama,
-                'nik' => $request->nik,
-                'alamat' => $request->alamat,
-                'updated_at' => now(),
-            ]);
-        } else {
-            DB::table('akun_rental')->insert([
-                'nama' => $request->nama,
-                'nik' => $request->nik,
-                'alamat' => $request->alamat,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
 
         return redirect('/')->with('success', 'Data berhasil disimpan!');
     }
 
-    // Proses Hapus Data Pelanggan
+    // 6. Hapus Data Pelanggan (Khusus Owner)
     public function destroy($id)
     {
         DB::table('akun_rental')->where('id', $id)->delete();
         return redirect('/')->with('success', 'Data berhasil dihapus!');
+    }
+
+    // 7. Proses Autentikasi Login (Pelanggan & Owner)
+    public function authenticate(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
+
+        if (Auth::attempt($credentials)) {
+            $request->session()->regenerate();
+
+            if (Auth::user()->role === 'owner') {
+                return redirect()->intended('/')->with('success', 'Selamat datang Owner!');
+            }
+            return redirect()->intended('/')->with('success', 'Berhasil login!');
+        }
+
+        return back()->withErrors([
+            'email' => 'Email atau password salah.',
+        ]);
+    }
+
+    // 8. Proses Logout
+    public function logout(Request $request)
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/')->with('success', 'Berhasil keluar.');
     }
 }
